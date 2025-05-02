@@ -161,12 +161,16 @@ class PaymentController extends Controller
                 'encrypted_id'  => md5($get->id.Carbon::now())
             ]);
 
+            $total = 0;
+
             foreach($get->billings as $billing){
                 $fines = 1 * $setup->fine_fee;
                 CustomerBilling::where('id',$billing->id)->update([
                     'fines'     => $fines,
                     'pay_date'  => $now
                 ]);
+
+                $total = $setup->administration_fee+$fines+$billing->price_total;
 
                 PaymentDetail::create([
                     'payment_id'    => $payment->id,
@@ -178,6 +182,8 @@ class PaymentController extends Controller
                     'total'         => $setup->administration_fee+$fines+$billing->price_total,
                 ]);
             }
+
+            $payment->update(['total' => $total]);
             $data = Payment::with('detail.billing.consumption','customer')->where('id',$payment->id)->first();
 
             $billing_periode = $payment->payment;
